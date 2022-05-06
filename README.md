@@ -23,6 +23,21 @@ before running subsequent commands.
 To start the SMS, run:
 
     vagrant up
+   
+You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that ends in "
+/sbin/mount.vboxsf: mounting failed with the error: No such device". To fix: 
+
+    vagrant ssh ${sms_name} 
+    
+    sudo yum -y update kernel kernel-headers
+
+    exit
+
+On host machine:
+    
+    vagrant halt 
+    
+    vagrant up 
 
 Provisioning the first time will take approximately ten minutes. Once the SMS is
 running, you can SSH into it:
