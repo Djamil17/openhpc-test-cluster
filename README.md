@@ -30,6 +30,8 @@ You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that
     vagrant ssh ${sms_name} 
     
     sudo yum -y update kernel kernel-headers
+    
+    sudo yum -y install gcc
 
     exit
 
