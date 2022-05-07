@@ -11,6 +11,14 @@ Install the following software.
 - [VirtualBox Oracle VM VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads)
 - [Vagrant](https://www.vagrantup.com/)
 
+## Installing vagrant plugins 
+
+Download vagrant plugins 
+
+    vagrant plugin install vagrant-vbguest 
+    
+    vagrant plugin install vagrant-disksize
+
 ## Building and Running
 
 To build a cluster of `$N` nodes, where `1 <= $N <= 10`, run:
@@ -29,7 +37,9 @@ You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that
 
     vagrant ssh ${sms_name} 
     
-    sudo yum -y install perl gcc kernel-headers kernel-devel elfutils-libelf-devel
+    sudo yum -y install perl gcc kernel-headers-4.18.0-348.20.1.el8_5.x86_64 kernel-devel-4.18.0-348.20.1.el8_5.x86_64 elfutils-libelf-devel
+    
+    sudo  /sbin/rcvboxadd setup
     
     exit
 
