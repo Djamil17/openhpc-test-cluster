@@ -29,7 +29,7 @@ You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that
 
     vagrant ssh ${sms_name} 
     
-    sudo yum -y update kernel perl gcc kernel-headers kernel-devel elfutils-libelf-devel
+    sudo yum -y install perl gcc kernel-headers kernel-devel elfutils-libelf-devel
     
     exit
 
