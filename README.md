@@ -39,8 +39,6 @@ You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that
     
     sudo yum -y install perl gcc kernel-headers-4.18.0-348.20.1.el8_5.x86_64 kernel-devel-4.18.0-348.20.1.el8_5.x86_64 elfutils-libelf-devel
     
-    sudo  /sbin/rcvboxadd setup
-    
     exit
 
 On host machine:
