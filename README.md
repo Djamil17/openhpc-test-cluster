@@ -45,7 +45,9 @@ On host machine:
     
     vagrant halt 
     
-    vagrant up 
+    vagrant up ${sms_name} --provision
+
+What this will do is permit the installation of VirtualBox GuestAdditions. 
 
 Provisioning the first time will take approximately ten minutes. Once the SMS is
 running, you can SSH into it:
