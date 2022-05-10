@@ -13,7 +13,7 @@ Install the following software.
 
 ## Installing vagrant plugins 
 
-Download vagrant plugins 
+Download vagrant box and plugins 
 
     vagrant plugin install vagrant-vbguest 
     
