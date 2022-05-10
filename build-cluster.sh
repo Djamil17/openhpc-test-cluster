@@ -1,5 +1,14 @@
 #!/bin/bash
 
+RESIZE_SCRIPT= << SCRIPT
+yum install -y cloud-utils-growpart
+
+growpart /dev/sda 1
+
+xfs_growfs /dev/sda1
+SCRIPT
+
+
 NCOMPUTES="$1"
 if [ -z "$NCOMPUTES" ] || [ "$NCOMPUTES" -lt 1 ] || [ "$NCOMPUTES" -gt 10 ]; then
     echo "You must request between 1 and 10 compute nodes ($NCOMPUTES requested)."
@@ -23,11 +32,16 @@ EOF`
     COMPUTE_DEFS+=$'\n'
     VAGRANT_DEFS+=`cat <<EOF
     config.vm.define "c$i", autostart: false do |c$i|
-      c$i.vm.provider "virtualbox" do |vboxc$i|
+       config.disksize.size="10GB"
+       config.vm.network "private_network",
+                    ip: "192.168.7.$((i+2))",
+                    virtualbox__intnet: "provisioning",
+                    adapter: 1
+       c$i.vm.provider "virtualbox" do |vboxc$i|
         vboxc$i.memory = 2048
         vboxc$i.cpus = 1
         # Enable if you need to debug PXE.
-        #vboxc$i.gui = 'true'
+        vboxc$i.gui = 'true'
         vboxc$i.customize [
           'modifyvm', :id,
           '--nic1', 'intnet',
@@ -41,14 +55,27 @@ EOF`
 
         vboxc$i.customize [
           "storageattach", :id,
-          "--storagectl", "IDE",
+          "--storagectl", "IDE Controller",
           "--port", "0",
           "--device", "0",
           "--type", "dvddrive",
           "--medium", "${PXEBOOT_ISO}"
         ]
+
+        ## need to create VDI and attach it to the new machine
+
+          vboxc$i.customize [
+          "storageattach", :id,
+          "--storagectl", "IDE Controller",
+          "--type", "vdi",
+          "--medium", "${PXEBOOT_ISO}"
+        ]
+
+
       end
       c$i.vm.boot_timeout = 10
+#     c$i.vm.provision "shell",inline: $RESIZE_SCRIPT
+
     end
 EOF`
     VAGRANT_DEFS+=$'\n'
@@ -60,10 +87,11 @@ echo "$COMPUTE_DEFS" >> cluster/input.local
 cp Vagrantfile.header.tmpl cluster/Vagrantfile
 echo "$VAGRANT_DEFS" >> cluster/Vagrantfile
 cat Vagrantfile.footer.tmpl >> cluster/Vagrantfile
+cp resize-disk.sh cluster/resize-disk.sh
 cp slurm.conf cluster/slurm.conf
 cp slurmdbd.conf cluster/slurmdbd.conf
-cp slurmdbd.sql cluster/slurmdbd.sql
-cp slurm-setup.sh cluster/slurm-setup.sh
+cp slurmdb.sql cluster/slurmdb.sql
+cp slurmdb-setup.sh cluster/slurmdb-setup.sh
 cp cgroup.conf cluster/cgroup.conf
 cp cgroup_allowed_devices_file.conf cluster/cgroup_allowed_devices_file.conf
 

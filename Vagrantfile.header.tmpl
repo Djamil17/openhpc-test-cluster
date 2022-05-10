@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
-    config.vm.box = "centos/7"
-    config.vm.box_version = "1902.01"
+    config.vm.box = "rockylinux/8"
+    config.disksize.size="10GB"
 
     config.vm.define "sms", primary: true do |sms|
       sms.vm.provider "virtualbox" do |vboxsms|
@@ -12,12 +12,18 @@ Vagrant.configure("2") do |config|
                      virtualbox__intnet: "provisioning"
       sms.vm.provision "shell", inline: "echo sms.localdomain > /etc/hostname"
       sms.vm.provision "shell", inline: "echo 192.168.7.2 sms sms.localdomain >> /etc/hosts"
-      sms.vm.provision "shell", inline: "yum -y install http://build.openhpc.community/OpenHPC:/1.3/CentOS_7/x86_64/ohpc-release-1.3-1.el7.x86_64.rpm"
-      sms.vm.provision "shell", inline: "yum -y groupinstall 'Development Tools'"
+      sms.vm.provision "shell", inline: "yum -y install http://repos.openhpc.community/OpenHPC/2/EL_8/x86_64/ohpc-release-2-1.el8.x86_64.rpm"
+      sms.vm.provision "shell", inline: "yum install dnf-plugins-core"
+      sms.vm.provision "shell", inline: "yum config-manager --set-enabled powertools"
       sms.vm.provision "shell", inline: "yum -y install docs-ohpc vim"
+      sms.vm.provision "shell", inline: "/vagrant/resize-disk.sh"
       sms.vm.provision "shell", inline: "/vagrant/recipe.sh"
       # Disable SELINUX.
+      sms.vm.provision "shell", inline: "sed -e "s/SELINUXTYPE=targeted/SELINUXTYPE=disabled/" /etc/selinux/config"
       sms.vm.provision "shell", inline: "setenforce 0", run: "always"
       sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"
+      sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"
+      sms.vm.provision "shell", inline: "/vagrant/slurmdb-setup.sh"
+
     end
 

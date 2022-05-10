@@ -10,7 +10,7 @@
 # ---------------------------
 
 # Hostname for master server (SMS)
-sms_name="${sms_name:-sms}"
+sms_name="${sms_name:-ace-dev-ctrl}"
 
 # Local (internal) IP address on SMS
 sms_ip="${sms_ip:-192.168.7.2}"
@@ -22,7 +22,7 @@ sms_eth_internal="${sms_eth_internal:-eth1}"
 internal_netmask="${internal_netmask:-255.255.255.0}"
 
 # Local ntp server for time synchronization
-ntp_server="${ntp_server:-0.centos.pool.ntp.org}"
+ntp_server="${ntp_server:-us.pool.ntp.org}"
 
 # Provisioning interface used by compute hosts (Warewulf recipe only)
 eth_provision="${eth_provision:-eth1}"
@@ -42,6 +42,7 @@ enable_genders="${enable_genders:-0}"
 enable_kargs="${enable_kargs:-0}"
 enable_beegfs_client="${enable_beegfs_client:-0}"
 enable_lustre_client="${enable_lustre_client:-0}"
+enable_magpie="${enable_magpie:-0}"
 enable_mrsh="${enable_mrsh:-0}"
 enable_nagios="${enable_nagios:-0}"
 enable_powerman="${enable_powerman:-0}"

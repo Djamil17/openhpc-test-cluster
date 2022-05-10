@@ -12,7 +12,13 @@
 #  Please see the OpenHPC Install Guide(s) for more information regarding the
 #  procedure. Note that the section numbering included in this script refers to
 #  corresponding sections from the companion install guide.
+#
+#  Where the commands have # in front this means that the #-command was for centos-7.
+#  The commands were retained for comparison between the two installations.
 # -----------------------------------------------------------------------------------------
+
+set -e
+set -x
 
 inputFile=/vagrant/input.local
 
@@ -43,17 +49,22 @@ systemctl stop firewalld
 # ------------------------------------------------------------
 # Add baseline OpenHPC and provisioning services (Section 3.3)
 # ------------------------------------------------------------
+# Rocky utilizes chronyd
 yum -y install ohpc-base
 yum -y install ohpc-warewulf
 # Enable NTP services on SMS host
-systemctl enable ntpd.service
-echo "server ${ntp_server}" >> /etc/ntp.conf
-systemctl restart ntpd
+echo "server ${ntp_server}" >> /etc/chrony.conf
+echo "allow all" >> /etc/chrony.conf
+systemctl restart chronyd
 
 # -------------------------------------------------------------
 # Add resource management services on master node (Section 3.4)
 # -------------------------------------------------------------
 yum -y install ohpc-slurm-server
+cp /vagrant/slurm.conf /etc/slurm/slurm.conf
+cp /vagrant/slurmdbd.conf /etc/slurm/slurmdbd.conf
+cp /vagrant/cgroup.conf /etc/slurm/cgroup.conf
+cp /vagrant/cgroup_allowed_devices_file.conf /etc/slurm/cgroup_allowed_devices_file.conf
 perl -pi -e "s/ControlMachine=\S+/ControlMachine=${sms_name}/" /etc/slurm/slurm.conf
 
 # ----------------------------------------
@@ -109,14 +120,18 @@ fi
 # Complete basic Warewulf setup for master node (Section 3.7)
 # -----------------------------------------------------------
 perl -pi -e "s/device = eth1/device = ${sms_eth_internal}/" /etc/warewulf/provision.conf
-perl -pi -e "s/^\s+disable\s+= yes/ disable = no/" /etc/xinetd.d/tftp
-ifconfig ${sms_eth_internal} ${sms_ip} netmask ${internal_netmask} up
-systemctl restart xinetd
-systemctl enable mariadb.service
-systemctl restart mariadb
+#perl -pi -e "s/^\s+disable\s+= yes/ disable = no/" /etc/xinetd.d/tftp
+ip link set dev ${sms_eth_internal}
+#ip address add ${sms_ip}/${internal_netmask} broadcast + dev ${sms_eth_internal}
+#systemctl restart xinetd
+#systemctl enable mariadb.service
+#systemctl restart mariadb
 systemctl enable httpd.service
 systemctl restart httpd
 systemctl enable dhcpd.service
+systemctl enable tftp.socket
+systemctl start tftp.socket
+
 if [ ! -z ${BOS_MIRROR+x} ]; then
      export YUM_MIRROR=${BOS_MIRROR}
 fi
@@ -124,22 +139,38 @@ fi
 # -------------------------------------------------
 # Create compute image for Warewulf (Section 3.8.1)
 # -------------------------------------------------
-export CHROOT=/opt/ohpc/admin/images/centos7.6
-wwmkchroot centos-7 $CHROOT
+export CHROOT=/opt/ohpc/admin/images/rocky8.5
+wwmkchroot -v rocky-8 $CHROOT
 
 # ------------------------------------------------------------
 # Add OpenHPC base components to compute image (Section 3.8.2)
 # ------------------------------------------------------------
-yum -y --installroot=$CHROOT install ohpc-base-compute
+dnf -y --installroot=$CHROOT install epel-release
+cp -p /etc/yum.repos.d/OpenHPC*.repo $CHROOT/etc/yum.repos.d
 
 # -------------------------------------------------------
 # Add OpenHPC components to compute image (Section 3.8.2)
 # -------------------------------------------------------
 cp -p /etc/resolv.conf $CHROOT/etc/resolv.conf
 # Add OpenHPC components to compute instance
+yum -y --installroot=$CHROOT install ohpc-base-compute
+#yum -y --installroot=$CHROOT install ohpc-slurm-client
+#yum -y --installroot=$CHROOT install ntp
+#yum -y --installroot=$CHROOT install kernel
+#yum -y --installroot=$CHROOT install lmod-ohpc
+
+# -------------------------------------------------------
+# Include additional required components to the compute instance
+# including resource manager client, NTP, and development
+# environment modules support (Section 3.8.2)
+# -------------------------------------------------------
+cp /etc/passwd /etc/group $CHROOT/etc
 yum -y --installroot=$CHROOT install ohpc-slurm-client
-yum -y --installroot=$CHROOT install ntp
-yum -y --installroot=$CHROOT install kernel
+chroot $CHROOT systemctl enable munge
+echo SLURMD_OPTIONS="--conf-server ${sms_ip}" > $CHROOT/etc/sysconfig/slurmd
+yum -y --installroot=$CHROOT install chrony
+echo "server ${sms_ip}" >> $CHROOT/etc/chrony.conf
+yum -y --installroot=$CHROOT install kernel-`uname -r`
 yum -y --installroot=$CHROOT install lmod-ohpc
 
 # ----------------------------------------------
@@ -154,8 +185,8 @@ echo "/opt/ohpc/pub *(ro,no_subtree_check,fsid=11)" >> /etc/exports
 exportfs -a
 systemctl restart nfs-server
 systemctl enable nfs-server
-chroot $CHROOT systemctl enable ntpd
-echo "server ${sms_ip}" >> $CHROOT/etc/ntp.conf
+#chroot $CHROOT systemctl enable ntpd
+#echo "server ${sms_ip}" >> $CHROOT/etc/ntp.conf
 
 # Update basic slurm configuration if additional computes defined
 if [ ${num_computes} -gt 4 ];then
@@ -192,26 +223,31 @@ perl -pi -e 's/# End of file/\* hard memlock unlimited\n$&/s' $CHROOT/etc/securi
 echo "account    required     pam_slurm.so" >> $CHROOT/etc/pam.d/sshd
 
 if [[ ${enable_beegfs_client} -eq 1 ]];then
-     wget -P /etc/yum.repos.d https://www.beegfs.io/release/beegfs_6/dists/beegfs-rhel7.repo
-     yum -y install kernel-devel gcc
+     wget -P /etc/yum.repos.d https://www.beegfs.io/release/beegfs_7.2.1/dists/beegfs-rhel8.repo
+     yum -y install kernel-devel gcc elfutils-libelf-devel
      yum -y install beegfs-client beegfs-helperd beegfs-utils
      perl -pi -e "s/^buildArgs=-j8/buildArgs=-j8 BEEGFS_OPENTK_IBVERBS=1/"  /etc/beegfs/beegfs-client-autobuild.conf
      /opt/beegfs/sbin/beegfs-setup-client -m ${sysmgmtd_host}
      systemctl start beegfs-helperd
      systemctl start beegfs-client
      yum -y install patch
-     wget https://www.beegfs.io/release/beegfs_6/0001-client-fix-readdir-in-rhel-7.5.patch  -O /opt/beegfs/src/client/beegfs_client_module_6/0001-client-fix-readdir-in-rhel-7.5.patch
-     cd /opt/beegfs/src/client/beegfs_client_module_6
-     patch -p2 < 0001-client-fix-readdir-in-rhel-7.5.patch
-     /etc/init.d/beegfs-client rebuild
-     /etc/init.d/beegfs-client try-restart
-     wget -P $CHROOT/etc/yum.repos.d https://www.beegfs.io/release/beegfs_6/dists/beegfs-rhel7.repo
+
+
+     ## add to compute mode
+     #wget https://www.beegfs.io/release/beegfs_7.2.1/0001-client-fix-readdir-in-rhel-7.5.patch  -O /opt/beegfs/src/client/beegfs_client_module_6/0001-client-fix-readdir-in-rhel-7.5.patch
+     wget -P $CHROOT/etc/yum.repos.d https://www.beegfs.io/release/beegfs 7.2.1/dists/beegfs-rhel8.repo
      yum -y --installroot=$CHROOT install beegfs-client beegfs-helperd beegfs-utils
      perl -pi -e "s/^buildEnabled=true/buildEnabled=false/" $CHROOT/etc/beegfs/beegfs-client-autobuild.conf
      rm -f $CHROOT/var/lib/beegfs/client/force-auto-build
      chroot $CHROOT systemctl enable beegfs-helperd beegfs-client
      cp /etc/beegfs/beegfs-client.conf $CHROOT/etc/beegfs/beegfs-client.conf
      echo "drivers += beegfs" >> /etc/warewulf/bootstrap.conf
+
+     #cd /opt/beegfs/src/client/beegfs_client_module_6
+     #patch -p2 < 0001-client-fix-readdir-in-rhel-7.5.patch
+     #/etc/init.d/beegfs-client rebuild
+     #/etc/init.d/beegfs-client try-restart
+
 fi
 
 # Enable Optional packages
@@ -235,10 +271,13 @@ fi
 # -------------------------------------------------------
 # Configure rsyslog on SMS and computes (Section 3.8.4.7)
 # -------------------------------------------------------
-perl -pi -e "s/\\#\\\$ModLoad imudp/\\\$ModLoad imudp/" /etc/rsyslog.conf
-perl -pi -e "s/\\#\\\$UDPServerRun 514/\\\$UDPServerRun 514/" /etc/rsyslog.conf
+#perl -pi -e "s/\\#\\\$ModLoad imudp/\\\$ModLoad imudp/" /etc/rsyslog.conf
+#perl -pi -e "s/\\#\\\$UDPServerRun 514/\\\$UDPServerRun 514/" /etc/rsyslog.conf
+echo 'module(load="imudp")' >> /etc/rsyslog.d/ohpc.conf
+echo 'input(type="imudp" port="514")' >> /etc/rsyslog.d/ohpc.conf
 systemctl restart rsyslog
 echo "*.* @${sms_ip}:514" >> $CHROOT/etc/rsyslog.conf
+echo "Target=\"${sms_ip}\" Protocol=\"udp\"" >> $CHROOT/etc/rsyslog.conf
 perl -pi -e "s/^\*\.info/\\#\*\.info/" $CHROOT/etc/rsyslog.conf
 perl -pi -e "s/^authpriv/\\#authpriv/" $CHROOT/etc/rsyslog.conf
 perl -pi -e "s/^mail/\\#mail/" $CHROOT/etc/rsyslog.conf
@@ -246,8 +285,10 @@ perl -pi -e "s/^cron/\\#cron/" $CHROOT/etc/rsyslog.conf
 perl -pi -e "s/^uucp/\\#uucp/" $CHROOT/etc/rsyslog.conf
 if [[ ${enable_nagios} -eq 1 ]];then
      # Install Nagios on master and vnfs image
-     yum -y install ohpc-nagios
-     yum -y --installroot=$CHROOT install nagios-plugins-all-ohpc nrpe-ohpc
+     #yum -y install ohpc-nagios
+     yum -y install --skip-broken nagios nrpe nagios-plugins-*
+     #yum -y --installroot=$CHROOT install nagios-plugins-all-ohpc nrpe-ohpc
+     yum -y --installroot=$CHROOT install nrpe nagios-plugins-ssh
      chroot $CHROOT systemctl enable nrpe
      perl -pi -e "s/^allowed_hosts=/# allowed_hosts=/" $CHROOT/etc/nagios/nrpe.cfg
      echo "nrpe 5666/tcp # NRPE"         >> $CHROOT/etc/services
@@ -261,11 +302,14 @@ if [[ ${enable_nagios} -eq 1 ]];then
         perl -pi -e "s/HOSTNAME$(($i+1))/${c_name[$i]}/ || s/HOST$(($i+1))_IP/${c_ip[$i]}/" \
         /etc/nagios/conf.d/hosts.cfg
      done
+     cp /opt/ohpc/pub/examples/nagios/compute.cfg /etc/nagios/objects
+     echo "cfg_file=/etc/nagios/objects/compute.cfg" >> /etc/nagios/nagios.cfg
      perl -pi -e "s/ \/bin\/mail/ \/usr\/bin\/mailx/g" /etc/nagios/objects/commands.cfg
      perl -pi -e "s/nagios\@localhost/root\@${sms_name}/" /etc/nagios/objects/contacts.cfg
-     echo command[check_ssh]=/usr/lib64/nagios/plugins/check_ssh localhost >> $CHROOT/etc/nagios/nrpe.cfg
+     echo command[check_ssh]=/usr/lib64/nagios/plugins/check_ssh localhost $CHROOT/etc/nagios/nrpe.cfg
      htpasswd -bc /etc/nagios/passwd nagiosadmin ${nagios_web_password}
      chkconfig nagios on
+     systemctl enable nagios
      systemctl start nagios
      chmod u+s `which ping`
 fi
@@ -288,7 +332,8 @@ fi
 
 if [[ ${enable_clustershell} -eq 1 ]];then
      # Install clustershell
-     yum -y install clustershell-ohpc
+     #yum -y install clustershell-ohpc
+     yum -y install clustershell
      cd /etc/clustershell/groups.d
      mv local.cfg local.cfg.orig
      echo "adm: ${sms_name}" > local.cfg
@@ -314,6 +359,11 @@ if [[ ${enable_genders} -eq 1 ]];then
      done >> /etc/genders
 fi
 
+if [[ ${enable_magpie} -eq 1 ]];then
+     # Install magpie
+     yum -y install magpie-ohpc
+fi
+
 # Optionally, enable conman and configure
 if [[ ${enable_ipmisol} -eq 1 ]];then
      yum -y install conman-ohpc
@@ -325,7 +375,7 @@ if [[ ${enable_ipmisol} -eq 1 ]];then
      systemctl start conman
 fi
 
-# Optionally, enable nhc and configure
+# Enable nhc and configure
 yum -y install nhc-ohpc
 yum -y --installroot=$CHROOT install nhc-ohpc
 
@@ -339,6 +389,7 @@ fi
 
 if [[ ${enable_geopm} -eq 1 ]];then
      yum -y --installroot=$CHROOT install kmod-msr-safe-ohpc
+     yum -y --installroot=$CHROOT install msr-safe-ohpc
      yum -y --installroot=$CHROOT install msr-safe-slurm-ohpc
 fi
 
@@ -361,7 +412,7 @@ fi
 # --------------------------------------
 export WW_CONF=/etc/warewulf/bootstrap.conf
 echo "drivers += updates/kernel/" >> $WW_CONF
-echo "drivers += overlay" >> $WW_CONF
+#echo "drivers += overlay" >> $WW_CONF
 wwbootstrap `uname -r`
 # Assemble VNFS
 wwvnfs --chroot $CHROOT
@@ -373,7 +424,7 @@ for ((i=0; i<$num_computes; i++)) ; do
    wwsh -y node new ${c_name[i]} --ipaddr=${c_ip[i]} --hwaddr=${c_mac[i]} -D ${eth_provision}
 done
 # Add hosts to cluster (Cont.)
-wwsh -y provision set "${compute_regex}" --vnfs=centos7.6 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,slurm.conf,munge.key,network
+wwsh -y provision set "${compute_regex}" --vnfs=rocky8.5 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,slurm.conf,munge.key,network
 
 # Restart ganglia services to pick up hostfile changes
 if [[ ${enable_ganglia} -eq 1 ]];then
@@ -410,9 +461,9 @@ fi
 # ---------------------------------
 # Boot compute nodes (Section 3.10)
 # ---------------------------------
-for ((i=0; i<${num_computes}; i++)) ; do
-   ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} chassis power reset
-done
+#for ((i=0; i<${num_computes}; i++)) ; do
+#   ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} chassis power reset
+#done
 
 # ---------------------------------------
 # Install Development Tools (Section 4.1)
@@ -426,7 +477,7 @@ yum -y install valgrind-ohpc
 # -------------------------------
 # Install Compilers (Section 4.2)
 # -------------------------------
-yum -y install gnu8-compilers-ohpc
+yum -y install gnu9-compilers-ohpc
 
 # ----------------------
 # Install llvm Compilers
@@ -437,41 +488,42 @@ yum -y install llvm5-compilers-ohpc
 # Install MPI Stacks (Section 4.3)
 # --------------------------------
 if [[ ${enable_mpi_defaults} -eq 1 && ${enable_pmix} -eq 0 ]];then
-     yum -y install openmpi3-gnu8-ohpc mpich-gnu8-ohpc
+     yum -y install openmpi4-gnu9-ohpc mpich-ofi-gnu9-ohpc
 elif [[ ${enable_mpi_defaults} -eq 1 && ${enable_pmix} -eq 1 ]];then
-     yum -y install openmpi3-pmix-slurm-gnu8-ohpc mpich-gnu8-ohpc
+     yum -y install openmpi4-pmix-slurm-gnu9-ohpc mpich-ucx-gnu9-ohpc
 fi
 
 if [[ ${enable_ib} -eq 1 ]];then
-     yum -y install mvapich2-gnu8-ohpc
+     yum -y install mvapich2-gnu9-ohpc
 fi
 if [[ ${enable_opa} -eq 1 ]];then
-     yum -y install mvapich2-psm2-gnu8-ohpc
+     yum -y install mvapich2-psm2-gnu9-ohpc
 fi
 
 # ---------------------------------------
 # Install Performance Tools (Section 4.4)
 # ---------------------------------------
-yum -y install ohpc-gnu8-perf-tools
+yum -y install ohpc-gnu9-perf-tools
 
 if [[ ${enable_geopm} -eq 1 ]];then
-     yum -y install ohpc-gnu8-geopm
+     yum -y install ohpc-gnu9-geopm
 fi
 #yum -y install lmod-defaults-gnu8-openmpi3-ohpc
+yum -y install lmod-defaults-gnu9-openmpi4-ohpc
 
 # ---------------------------------------------------
 # Install 3rd Party Libraries and Tools (Section 4.6)
 # ---------------------------------------------------
-yum -y install ohpc-gnu8-serial-libs
-yum -y install ohpc-gnu8-io-libs
-yum -y install ohpc-gnu8-python-libs
-yum -y install ohpc-gnu8-runtimes
+yum -y install ohpc-gnu9-serial-libs
+yum -y install ohpc-gnu9-io-libs
+yum -y install ohpc-gnu9-python-libs
+yum -y install ohpc-gnu9-runtimes
 if [[ ${enable_mpi_defaults} -eq 1 ]];then
-     yum -y install ohpc-gnu8-mpich-parallel-libs
-     yum -y install ohpc-gnu8-openmpi3-parallel-libs
+     yum -y install ohpc-gnu9-mpich-parallel-libs
+     yum -y install ohpc-gnu9-openmpi4-parallel-libs
 fi
 if [[ ${enable_ib} -eq 1 ]];then
-     yum -y install ohpc-gnu8-mvapich2-parallel-libs
+     yum -y install ohpc-gnu9-mvapich2-parallel-libs
 fi
 if [[ ${enable_opa} -eq 1 ]];then
      yum -y install ohpc-gnu8-mvapich2-parallel-libs
@@ -490,27 +542,22 @@ if [[ ${enable_intel_packages} -eq 1 ]];then
      yum -y install ohpc-intel-geopm
      yum -y install ohpc-intel-io-libs
      yum -y install ohpc-intel-perf-tools
-     yum -y install ohpc-intel-python-libs
+     yum -y install ohpc-intel-python3-libs
      yum -y install ohpc-intel-runtimes
      yum -y install ohpc-intel-mpich-parallel-libs
      yum -y install ohpc-intel-mvapich2-parallel-libs
-     yum -y install ohpc-intel-openmpi3-parallel-libs
+     yum -y install ohpc-intel-openmpi4-parallel-libs
      yum -y install ohpc-intel-impi-parallel-libs
 fi
 
-# Add a few test users
-useradd -m test1
-useradd -m test2
-useradd -m test3
-wwsh file resync passwd shadow group
 
 # ------------------------------------
 # Resource Manager Startup (Section 5)
 # ------------------------------------
-cp /vagrant/slurm.conf /etc/slurm/slurm.conf
-cp /vagrant/slurmdbd.conf /etc/slurm/slurmdbd.conf
-cp /vagrant/cgroup.conf /etc/slurm/cgroup.conf
-cp /vagrant/cgroup_allowed_devices_file.conf /etc/slurm/cgroup_allowed_devices_file.conf
+#cp /vagrant/slurm.conf /etc/slurm/slurm.conf
+#cp /vagrant/slurmdbd.conf /etc/slurm/slurmdbd.conf
+#cp /vagrant/cgroup.conf /etc/slurm/cgroup.conf
+#cp /vagrant/cgroup_allowed_devices_file.conf /etc/slurm/cgroup_allowed_devices_file.conf
 wwsh file sync slurm.conf
 wwsh file import /etc/slurm/cgroup.conf
 wwsh file import /etc/slurm/cgroup_allowed_devices_file.conf
@@ -518,8 +565,17 @@ wwsh -y provision set "${compute_regex}" --fileadd=cgroup.conf,cgroup_allowed_de
 systemctl enable munge
 systemctl enable slurmctld
 systemctl enable slurmdbd
-mysql < /vagrant/slurmdbd.sql
+mysql -u root < /vagrant/slurmdb.sql
 systemctl start munge
+systemctl start slurmctld
+systemctl start slurmdbd
+
+# Add a few test users
+useradd -m djamil
+useradd -m rodgers
+useradd -m matthew
+wwsh file resync passwd shadow group
 
 # Do this after provisioning nodes.
+#pdsh -w $compute_prefix[1-4] systemctl start munge
 #pdsh -w $compute_prefix[1-$num_computes] systemctl start slurmd
