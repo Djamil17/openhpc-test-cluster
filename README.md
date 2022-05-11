@@ -3,7 +3,10 @@
 This repository provides the utilities necessary for quickly building an OpenHPC
 test cluster using VirtualBox VMs and Vagrant.
 
-## Prerequisites
+
+# Mac OS installation 
+
+## Prerequisites 
 
 Install the following software.
 
@@ -71,3 +74,5 @@ will take approximately two minutes.
 
 The ordinary Vagrant `halt`, `destroy`, and `status` commands may be useful as
 well.
+
+# Ubuntu Linux installation 
