@@ -3,6 +3,10 @@
 This repository provides the utilities necessary for quickly building an OpenHPC
 test cluster using VirtualBox VMs and Vagrant.
 
+Hardware Requirements 
+
+   It is recommended to have _at least_ 50 gb of storage and 16 gb of ram. The installation process was tested on mac, windows, and linux ubuntu. 
+
 
 # Mac OS installation 
 
