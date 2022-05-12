@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
     config.vm.box = "rockylinux/8"
-    config.disksize.size="10GB"
+    config.disksize.size="15GB"
 
     config.vm.define "sms", primary: true do |sms|
       sms.vm.provider "virtualbox" do |vboxsms|
@@ -19,7 +19,6 @@ Vagrant.configure("2") do |config|
       sms.vm.provision "shell", inline: "/vagrant/resize-disk.sh"
       sms.vm.provision "shell", inline: "/vagrant/recipe.sh"
       # Disable SELINUX.
-      sms.vm.provision "shell", inline: "sed -e "s/SELINUXTYPE=targeted/SELINUXTYPE=disabled/" /etc/selinux/config"
       sms.vm.provision "shell", inline: "setenforce 0", run: "always"
       sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"
       sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"

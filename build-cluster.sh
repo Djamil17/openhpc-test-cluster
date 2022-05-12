@@ -32,16 +32,31 @@ EOF`
     COMPUTE_DEFS+=$'\n'
     VAGRANT_DEFS+=`cat <<EOF
     config.vm.define "c$i", autostart: false do |c$i|
-       config.disksize.size="10GB"
-       config.vm.network "private_network",
-                    ip: "192.168.7.$((i+2))",
-                    virtualbox__intnet: "provisioning",
-                    adapter: 1
        c$i.vm.provider "virtualbox" do |vboxc$i|
         vboxc$i.memory = 2048
         vboxc$i.cpus = 1
         # Enable if you need to debug PXE.
         vboxc$i.gui = 'true'
+          ## need to create VDI and attach it to the new machine
+
+          vboxc$i.customize [
+          "createmedium", "disk",
+          "--filename","c${i})",
+          "--format", "vdi",
+          "--size", "15360"]
+
+          vboxc$i.customize [
+          "storageattach", :id,
+          "--storagectl", "IDE Controller",
+          "--type", "vdi",
+          "--port", "1",
+          "--device", "1",
+
+          ## define a better location
+          "--medium","/Users/djamillakhdarhamina/openhpc-test-cluster/cluster/c${i}.vdi"
+
+           ]
+
         vboxc$i.customize [
           'modifyvm', :id,
           '--nic1', 'intnet',
@@ -61,16 +76,6 @@ EOF`
           "--type", "dvddrive",
           "--medium", "${PXEBOOT_ISO}"
         ]
-
-        ## need to create VDI and attach it to the new machine
-
-          vboxc$i.customize [
-          "storageattach", :id,
-          "--storagectl", "IDE Controller",
-          "--type", "vdi",
-          "--medium", "${PXEBOOT_ISO}"
-        ]
-
 
       end
       c$i.vm.boot_timeout = 10

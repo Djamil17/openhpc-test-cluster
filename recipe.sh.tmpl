@@ -56,6 +56,7 @@ yum -y install ohpc-warewulf
 echo "server ${ntp_server}" >> /etc/chrony.conf
 echo "allow all" >> /etc/chrony.conf
 systemctl restart chronyd
+#sed -e "s/SELINUXTYPE=targeted/SELINUXTYPE=disabled/" /etc/selinux/config
 
 # -------------------------------------------------------------
 # Add resource management services on master node (Section 3.4)
@@ -65,7 +66,8 @@ cp /vagrant/slurm.conf /etc/slurm/slurm.conf
 cp /vagrant/slurmdbd.conf /etc/slurm/slurmdbd.conf
 cp /vagrant/cgroup.conf /etc/slurm/cgroup.conf
 cp /vagrant/cgroup_allowed_devices_file.conf /etc/slurm/cgroup_allowed_devices_file.conf
-perl -pi -e "s/ControlMachine=\S+/ControlMachine=${sms_name}/" /etc/slurm/slurm.conf
+#perl -pi -e "s/ControlMachine=/ControlMachine=${sms_name}/" /etc/slurm/slurm.conf
+chmod 600 /etc/slurm/slurmdbd.conf
 
 # ----------------------------------------
 # Update node configuration for slurm.conf
@@ -121,7 +123,7 @@ fi
 # -----------------------------------------------------------
 perl -pi -e "s/device = eth1/device = ${sms_eth_internal}/" /etc/warewulf/provision.conf
 #perl -pi -e "s/^\s+disable\s+= yes/ disable = no/" /etc/xinetd.d/tftp
-ip link set dev ${sms_eth_internal}
+#ip link set dev ${sms_eth_internal}
 #ip address add ${sms_ip}/${internal_netmask} broadcast + dev ${sms_eth_internal}
 #systemctl restart xinetd
 #systemctl enable mariadb.service
@@ -148,9 +150,32 @@ wwmkchroot -v rocky-8 $CHROOT
 dnf -y --installroot=$CHROOT install epel-release
 cp -p /etc/yum.repos.d/OpenHPC*.repo $CHROOT/etc/yum.repos.d
 
+
+
 # -------------------------------------------------------
 # Add OpenHPC components to compute image (Section 3.8.2)
 # -------------------------------------------------------
+
+#####################################################
+
+
+#####################################################
+mv -p /vagrant/sshd_config $CHROOT/etc/ssh/sshd_config
+chroot $CHROOT env EDITOR= ed vipw<< 'EOF'
+/^root
+s/root:x:/root::/
+w
+q
+EOF
+chroot  $CHROOT env EDITOR= ed vipw -s << 'EOF'
+/^root
+s/root:\*:/root::/
+w
+q
+EOF
+#####################################################
+
+
 cp -p /etc/resolv.conf $CHROOT/etc/resolv.conf
 # Add OpenHPC components to compute instance
 yum -y --installroot=$CHROOT install ohpc-base-compute
@@ -482,7 +507,7 @@ yum -y install gnu9-compilers-ohpc
 # ----------------------
 # Install llvm Compilers
 # ----------------------
-yum -y install llvm5-compilers-ohpc
+#yum -y install llvm5-compilers-ohpc
 
 # --------------------------------
 # Install MPI Stacks (Section 4.3)
