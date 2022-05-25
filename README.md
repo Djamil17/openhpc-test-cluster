@@ -3,18 +3,18 @@
 This repository provides the utilities necessary for quickly building an OpenHPC
 test cluster using VirtualBox VMs and Vagrant.
 
-Hardware Requirements:
+Hardware Used:
 
    `Macbook Pro 2019 
    Processor: 2.3 GHz8-Core Intel Core i9
    Memory: 16 GB 2667 MHz DDR4
    `
    
-OS Requirements: 
+OS Used: 
 
    `Mac OS Monterey v 12.4`
    
-   It is recommended to have _at least_ 50 gb of storage and 16 gb of ram. The installation process was tested on MAC solely, future fork will be develoed for Windows. 
+   It is recommended to have _at least_ 50 gb of freed up storage and 16 gb of ram. The installation process was tested on MAC solely, future fork will be develoed for Linux and Windows. 
 
 
 # Mac OS installation 
