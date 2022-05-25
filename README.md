@@ -104,7 +104,8 @@ well.
 
 Now run `post-provision.sh` to configure a few things and finally run:
 
-   ```vagrant ssh 
+   ```
+   vagrant ssh 
    
    sudo su root
    
