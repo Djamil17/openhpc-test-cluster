@@ -1,4 +1,4 @@
-# OpenHPC Test Cluster
+# OpenHPC Test Cluster Using Rocky Linux 8
 
 This repository provides the utilities necessary for quickly building an OpenHPC
 test cluster using VirtualBox VMs and Vagrant.
@@ -44,6 +44,8 @@ To build a cluster of `$N` nodes, where `1 <= $N <= 10`, run:
 A directory named `cluster` will be built. Change into the `cluster` directory
 before running subsequent commands.
 
+Look within cluster at `input.local` and change configurations to your liking. 
+
 To start the SMS, run:
 
     vagrant up
@@ -57,9 +59,9 @@ You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that
     
     exit
     
-You may get an error that yum repo does not contain the kernel-headers and kernel-devel version specified then you must :
+You may get an error that yum repo does not contain the kernel-headers and kernel-devel version specified , then you must :
 
-    sudo yum -y install perl gcc  elfutils-libelf-devel
+    sudo yum -y install perl gcc elfutils-libelf-devel
 
     sudo yum install -y wget 
    
@@ -75,7 +77,7 @@ On host machine:
     
     vagrant reload sms --provision
     
-What this will do is permit the installation of VirtualBox GuestAdditions. 
+What this will do is permit the installation of VirtualBox GuestAdditions. Then installation will continue. 
 
 Provisioning the first time will take approximately ten minutes. Once the SMS is
 running, you can SSH into it:
@@ -100,4 +102,12 @@ will take approximately two minutes.
 The ordinary Vagrant `halt`, `destroy`, and `status` commands may be useful as
 well.
 
-# Ubuntu Linux installation 
+Now run `post-provision.sh` to configure a few things and finally run 
+
+   vagrant ssh 
+   
+   sudo su root
+   
+   bash /test.sh 
+   
+Finished ! Have fun using. 
