@@ -102,12 +102,13 @@ will take approximately two minutes.
 The ordinary Vagrant `halt`, `destroy`, and `status` commands may be useful as
 well.
 
-Now run `post-provision.sh` to configure a few things and finally run 
+Now run `post-provision.sh` to configure a few things and finally run:
 
    vagrant ssh 
    
    sudo su root
    
    bash /test.sh 
+   
    
 Finished ! Have fun using. 
