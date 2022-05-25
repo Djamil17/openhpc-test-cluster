@@ -113,3 +113,5 @@ Now run `post-provision.sh` to configure a few things and finally run:
    ```
    
 Finished ! Have fun using. 
+
+This "app" was developed by Djamil Lakhdar-Hamina of [Research Data and Communications Technology](https://researchdata.us/). 
