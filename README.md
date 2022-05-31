@@ -14,7 +14,7 @@ OS Used:
 
    `Mac OS Monterey v 12.4`
    
-   It is recommended to have _at least_ 50 gb of freed up storage and 16 gb of ram. The installation process was tested on MAC solely, future fork will be develoed for Linux and Windows. 
+It is recommended to have _at least_ 50 GB of free storage and 16 GB of ram. The installation process was tested on MacOS solely, future fork will be develoed for Linux and Windows. 
 
 
 # Mac OS installation 
