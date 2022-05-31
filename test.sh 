@@ -1,0 +1,49 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------------------
+# Example testing script
+#
+# Interactive and batch job test
+# -----------------------------------------------------------------------------------------
+
+# ---------------------------- Begin OpenHPC Test ---------------------------------------
+# Commands below are extracted from an OpenHPC install guide recipe and are intended for
+# execution on the master SMS host.
+# -----------------------------------------------------------------------------------------
+
+inputFile=/vagrant/input.local
+
+if [ ! -e ${inputFile} ];then
+   echo "Error: Unable to access local input file -> ${inputFile}"
+   exit 1
+else
+   . ${inputFile} || { echo "Error sourcing ${inputFile}"; exit 1; }
+fi
+
+# ------------------------------------------------------------
+# Interactive execution (Section 3.3)
+# ------------------------------------------------------------
+
+## Switch to "test" user
+su - test
+
+## Compile MPI "hello world" example
+mpicc -O3 /opt/ohpc/pub/examples/mpi/hello.c
+
+# Submit interactive job request and use prun to launch executable
+salloc -n ${num_computes} -N ${num_computes}
+prun ./a.out
+
+# Srun job
+srun -N ${num_computes} hostname
+
+# Copy example job script
+cp /opt/ohpc/pub/examples/slurm/job.mpi .
+
+#make sure batch corresponds to system requirements
+sed -i '/-N 2/-N ${num_computes}' job.mpi
+sed -i '/-n 16/-n ${num_computes}' job.mpi
+
+# Submit job for batch execution
+sbatch job.mpi
+
+exit 0;

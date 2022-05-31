@@ -20,6 +20,13 @@
 set -e
 set -x
 
+# ---------------------------- Download Useful Software ---------------------------------------
+#
+#
+# -----------------------------------------------------------------------------------------
+
+
+
 inputFile=/vagrant/input.local
 
 if [ ! -e ${inputFile} ];then
@@ -56,7 +63,7 @@ yum -y install ohpc-warewulf
 echo "server ${ntp_server}" >> /etc/chrony.conf
 echo "allow all" >> /etc/chrony.conf
 systemctl restart chronyd
-#sed -e "s/SELINUXTYPE=targeted/SELINUXTYPE=disabled/" /etc/selinux/config
+#sed -e "s/SELINUXTYPE=targeted/SELINUXTYPE=permissive/" /etc/selinux/config
 
 # -------------------------------------------------------------
 # Add resource management services on master node (Section 3.4)
@@ -148,7 +155,8 @@ wwmkchroot -v rocky-8 $CHROOT
 # Add OpenHPC base components to compute image (Section 3.8.2)
 # ------------------------------------------------------------
 dnf -y --installroot=$CHROOT install epel-release
-cp -p /etc/yum.repos.d/OpenHPC*.repo $CHROOT/etc/yum.repos.d
+cp /etc/yum.repos.d/OpenHPC*.repo $CHROOT/etc/yum.repos.d
+cp /etc/yum.repos.d/*.repo $CHROOT/etc/yum.repos.d
 
 
 
@@ -158,26 +166,16 @@ cp -p /etc/yum.repos.d/OpenHPC*.repo $CHROOT/etc/yum.repos.d
 
 #####################################################
 
-
 #####################################################
-mv -p /vagrant/sshd_config $CHROOT/etc/ssh/sshd_config
-chroot $CHROOT env EDITOR= ed vipw<< 'EOF'
-/^root
-s/root:x:/root::/
-w
-q
-EOF
-chroot  $CHROOT env EDITOR= ed vipw -s << 'EOF'
-/^root
-s/root:\*:/root::/
-w
-q
-EOF
+cp /vagrant/sshd_config $CHROOT/etc/ssh/sshd_config
+sed -i 's/root:x:/root::/' /opt/ohpc/admin/images/rocky8.5/etc/passwd
+sed -i 's/root:\*:/root::/' /opt/ohpc/admin/images/rocky8.5/etc/shadow
 #####################################################
 
 
 cp -p /etc/resolv.conf $CHROOT/etc/resolv.conf
 # Add OpenHPC components to compute instance
+yum -y --installroot=$CHROOT install libunwind
 yum -y --installroot=$CHROOT install ohpc-base-compute
 #yum -y --installroot=$CHROOT install ohpc-slurm-client
 #yum -y --installroot=$CHROOT install ntp
@@ -195,7 +193,7 @@ chroot $CHROOT systemctl enable munge
 echo SLURMD_OPTIONS="--conf-server ${sms_ip}" > $CHROOT/etc/sysconfig/slurmd
 yum -y --installroot=$CHROOT install chrony
 echo "server ${sms_ip}" >> $CHROOT/etc/chrony.conf
-yum -y --installroot=$CHROOT install kernel-`uname -r`
+yum -y --installroot=$CHROOT install kernel-`uname -r` ## may cause failure
 yum -y --installroot=$CHROOT install lmod-ohpc
 
 # ----------------------------------------------
@@ -207,7 +205,7 @@ echo "${sms_ip}:/home /home nfs nfsvers=3,nodev,nosuid 0 0" >> $CHROOT/etc/fstab
 echo "${sms_ip}:/opt/ohpc/pub /opt/ohpc/pub nfs nfsvers=3,nodev 0 0" >> $CHROOT/etc/fstab
 echo "/home *(rw,no_subtree_check,fsid=10,no_root_squash)" >> /etc/exports
 echo "/opt/ohpc/pub *(ro,no_subtree_check,fsid=11)" >> /etc/exports
-exportfs -a
+exportfs -ra
 systemctl restart nfs-server
 systemctl enable nfs-server
 #chroot $CHROOT systemctl enable ntpd
@@ -596,9 +594,7 @@ systemctl start slurmctld
 systemctl start slurmdbd
 
 # Add a few test users
-useradd -m djamil
-useradd -m rodgers
-useradd -m matthew
+useradd -m test
 wwsh file resync passwd shadow group
 
 # Do this after provisioning nodes.

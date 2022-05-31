@@ -37,25 +37,27 @@ EOF`
         vboxc$i.cpus = 1
         # Enable if you need to debug PXE.
         vboxc$i.gui = 'true'
-          ## need to create VDI and attach it to the new machine
 
-          vboxc$i.customize [
-          "createmedium", "disk",
-          "--filename","c${i})",
-          "--format", "vdi",
-          "--size", "15360"]
 
-          vboxc$i.customize [
-          "storageattach", :id,
-          "--storagectl", "IDE Controller",
-          "--type", "vdi",
-          "--port", "1",
-          "--device", "1",
+        ## sometimes vdi is not created, need to create VDI and attach it to the new machine so uncomment here
 
-          ## define a better location
-          "--medium","/Users/djamillakhdarhamina/openhpc-test-cluster/cluster/c${i}.vdi"
-
-           ]
+#          vboxc$i.customize [
+#          "createmedium", "disk",
+#          "--filename","c${i}",
+#          "--format", "vdi",
+#          "--size", "15360"]
+#
+#          vboxc$i.customize [
+#          "storageattach", :id,
+#          "--storagectl", "IDE Controller",
+#          "--type", "hdd",
+#          "--port", "1",
+#          "--device", "1",
+#
+#          ## define a better location
+#          "--medium","/Users/djamillakhdarhamina/openhpc-test-cluster/cluster/c${i}.vdi"
+#
+#           ]
 
         vboxc$i.customize [
           'modifyvm', :id,
@@ -79,7 +81,7 @@ EOF`
 
       end
       c$i.vm.boot_timeout = 10
-#     c$i.vm.provision "shell",inline: $RESIZE_SCRIPT
+      c$i.vm.provision "shell",inline: $RESIZE_SCRIPT
 
     end
 EOF`
@@ -94,10 +96,12 @@ echo "$VAGRANT_DEFS" >> cluster/Vagrantfile
 cat Vagrantfile.footer.tmpl >> cluster/Vagrantfile
 cp resize-disk.sh cluster/resize-disk.sh
 cp slurm.conf cluster/slurm.conf
+cp sshd_config cluster/sshd_config
 cp slurmdbd.conf cluster/slurmdbd.conf
 cp slurmdb.sql cluster/slurmdb.sql
 cp slurmdb-setup.sh cluster/slurmdb-setup.sh
 cp cgroup.conf cluster/cgroup.conf
 cp cgroup_allowed_devices_file.conf cluster/cgroup_allowed_devices_file.conf
+cp post-provision.sh cluster/post-provision.sh
 
 cp "$PXEBOOT_ISO" "cluster/$PXEBOOT_ISO"
