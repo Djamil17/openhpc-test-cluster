@@ -193,7 +193,7 @@ chroot $CHROOT systemctl enable munge
 echo SLURMD_OPTIONS="--conf-server ${sms_ip}" > $CHROOT/etc/sysconfig/slurmd
 yum -y --installroot=$CHROOT install chrony
 echo "server ${sms_ip}" >> $CHROOT/etc/chrony.conf
-yum -y --installroot=$CHROOT install kernel-`uname -r` ## may cause failure
+#yum -y --installroot=$CHROOT install kernel-`uname -r` ## may cause failure
 yum -y --installroot=$CHROOT install lmod-ohpc
 
 # ----------------------------------------------
