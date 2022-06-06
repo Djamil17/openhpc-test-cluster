@@ -75,7 +75,9 @@ You may get an error that yum repo does not contain the kernel-headers and kerne
     
 On host machine:
     
-    vagrant reload sms --provision
+    vagrant halt sms 
+    
+    vagrant up sms --provision
     
 What this will do is permit the installation of VirtualBox GuestAdditions. Then installation will continue. 
 
