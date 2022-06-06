@@ -5,7 +5,7 @@ set -e
 
 yum install -y cloud-utils-growpart
 
-if growpart /dev/sda 1 &>2 ; then
+if growpart /dev/sda 1 >&2 ; then
    echo "partition grown"
 else
    echo "growing partition..."
