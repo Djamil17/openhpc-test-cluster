@@ -67,10 +67,13 @@ You may get an error that yum repo does not contain the kernel-headers and kerne
     wget https://mirror.tvk.rwth-aachen.de/rocky-linux/8.5/BaseOS/x86_64/os/Packages/k/kernel-devel-4.18.0-348.20.1.el8_5.x86_64.rpm                   https://mirror.tvk.rwth-aachen.de/rocky-linux/8.5/BaseOS/x86_64/os/Packages/k/kernel-headers-4.18.0-348.20.1.el8_5.x86_64.rpm
    
     sudo yum remove -y  kernel-headers-4.18.0-372.9.1.el8.x86_64 kernel-devel-4.18.0-372.9.1.el8.x86_64 
-   
+    
+   sudo  yum -y install perl make elfutils-libelf-devel
+
     sudo rpm -i kernel-devel-4.18.0-348.20.1.el8_5.x86_64.rpm  kernel-headers-4.18.0-348.20.1.el8_5.x86_64.rpm
     
-    sudo yum -y install perl make gcc elfutils-libelf-devel
+     sudo  yum -y install gcc
+
        
     exit
     
