@@ -8,6 +8,7 @@ growpart /dev/sda 1
 xfs_growfs /dev/sda1
 SCRIPT
 
+vdi_dir=$(pwd)
 
 NCOMPUTES="$1"
 if [ -z "$NCOMPUTES" ] || [ "$NCOMPUTES" -lt 1 ] || [ "$NCOMPUTES" -gt 10 ]; then
@@ -55,7 +56,7 @@ EOF`
 #          "--device", "1",
 #
 #          ## define a better location
-#          "--medium","/Users/djamillakhdarhamina/openhpc-test-cluster/cluster/c${i}.vdi"
+#          "--medium","/c${i}.vdi"
 #
 #           ]
 
