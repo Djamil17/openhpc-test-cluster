@@ -76,7 +76,7 @@ EOF`
           "--device", "1",
 
           ## define a better location
-          "--medium","${vdi_dir}/c${i}.vdi"
+          "--medium","${vdi_dir}/cluster/c${i}.vdi"
 
            ]
 
