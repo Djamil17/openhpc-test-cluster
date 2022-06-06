@@ -48,7 +48,7 @@ Look within cluster at `input.local` and change configurations to your liking.
 
 To start the SMS, run:
 
-    vagrant up
+    vagrant up ${sms_name}
    
 You will get an error in Virtual Box 6.1.34 and with Vagrant version 2.2.17 that ends in "
 /sbin/mount.vboxsf: mounting failed with the error: No such device". To fix: 
