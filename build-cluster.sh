@@ -39,26 +39,25 @@ EOF`
         # Enable if you need to debug PXE.
         vboxc$i.gui = 'true'
 
-
         ## sometimes vdi is not created, need to create VDI and attach it to the new machine so uncomment here
 
-#          vboxc$i.customize [
-#          "createmedium", "disk",
-#          "--filename","c${i}",
-#          "--format", "vdi",
-#          "--size", "15360"]
-#
-#          vboxc$i.customize [
-#          "storageattach", :id,
-#          "--storagectl", "IDE Controller",
-#          "--type", "hdd",
-#          "--port", "1",
-#          "--device", "1",
-#
-#          ## define a better location
-#          "--medium","/c${i}.vdi"
-#
-#           ]
+          vboxc$i.customize [
+          "createmedium", "disk",
+          "--filename","c${i}",
+          "--format", "vdi",
+          "--size", "15360"]
+
+          vboxc$i.customize [
+          "storageattach", :id,
+          "--storagectl", "IDE Controller",
+          "--type", "hdd",
+          "--port", "1",
+          "--device", "1",
+
+          ## define a better location
+          "--medium","${vdi_dir}/c${i}.vdi"
+
+           ]
 
         vboxc$i.customize [
           'modifyvm', :id,
@@ -103,5 +102,6 @@ cp slurmdb-setup.sh cluster/slurmdb-setup.sh
 cp cgroup.conf cluster/cgroup.conf
 cp cgroup_allowed_devices_file.conf cluster/cgroup_allowed_devices_file.conf
 cp post-provision.sh cluster/post-provision.sh
+cp post-provision.sh cluster/test.sh
 
 cp "$PXEBOOT_ISO" "cluster/$PXEBOOT_ISO"
