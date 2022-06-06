@@ -18,10 +18,10 @@ Vagrant.configure("2") do |config|
       sms.vm.provision "shell", inline: "yum -y install docs-ohpc vim"
       sms.vm.provision "shell", inline: "/vagrant/resize-disk.sh"
       sms.vm.provision "shell", inline: "/vagrant/recipe.sh"
-      # Disable SELINUX.
+      # Disable SELINUX. Inteferes with internode communication
       sms.vm.provision "shell", inline: "sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux"
       sms.vm.provision "shell", inline: "sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config"
-      sms.vm.provision "shell", inline: "if setenforce 0 >&2 ; then echo "already disabled" ; fi", run: "always"
+      sms.vm.provision "shell", inline: "if setenforce 0 >&2 ; then echo 'already disabled'; fi", run: "always"
       sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"
       sms.vm.provision "shell", inline: "hostname sms.localdomain", run: "always"
       sms.vm.provision "shell", inline: "/vagrant/slurmdb-setup.sh"
