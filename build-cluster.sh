@@ -81,7 +81,6 @@ EOF`
 
       end
       c$i.vm.boot_timeout = 10
-      c$i.vm.provision "shell",inline: $RESIZE_SCRIPT
 
     end
 EOF`
