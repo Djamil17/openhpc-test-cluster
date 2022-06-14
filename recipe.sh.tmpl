@@ -308,30 +308,18 @@ perl -pi -e "s/^cron/\\#cron/" $CHROOT/etc/rsyslog.conf
 perl -pi -e "s/^uucp/\\#uucp/" $CHROOT/etc/rsyslog.conf
 if [[ ${enable_nagios} -eq 1 ]];then
      # Install Nagios on master and vnfs image
-     #yum -y install ohpc-nagios
      yum -y install --skip-broken nagios nrpe nagios-plugins-*
-     #yum -y --installroot=$CHROOT install nagios-plugins-all-ohpc nrpe-ohpc
      yum -y --installroot=$CHROOT install nrpe nagios-plugins-ssh
      chroot $CHROOT systemctl enable nrpe
      perl -pi -e "s/^allowed_hosts=/# allowed_hosts=/" $CHROOT/etc/nagios/nrpe.cfg
-     echo "nrpe 5666/tcp # NRPE"         >> $CHROOT/etc/services
      echo "nrpe : ${sms_ip}  : ALLOW"    >> $CHROOT/etc/hosts.allow
      echo "nrpe : ALL : DENY"            >> $CHROOT/etc/hosts.allow
-     chroot $CHROOT /usr/sbin/useradd -c "NRPE user for the NRPE service" -d /var/run/nrpe -r -g nrpe -s /sbin/nologin nrpe
-     chroot $CHROOT /usr/sbin/groupadd -r nrpe
-     mv /etc/nagios/conf.d/services.cfg.example /etc/nagios/conf.d/services.cfg
-     mv /etc/nagios/conf.d/hosts.cfg.example /etc/nagios/conf.d/hosts.cfg
-     for ((i=0; i<$num_computes; i++)) ; do
-        perl -pi -e "s/HOSTNAME$(($i+1))/${c_name[$i]}/ || s/HOST$(($i+1))_IP/${c_ip[$i]}/" \
-        /etc/nagios/conf.d/hosts.cfg
-     done
      cp /opt/ohpc/pub/examples/nagios/compute.cfg /etc/nagios/objects
      echo "cfg_file=/etc/nagios/objects/compute.cfg" >> /etc/nagios/nagios.cfg
      perl -pi -e "s/ \/bin\/mail/ \/usr\/bin\/mailx/g" /etc/nagios/objects/commands.cfg
      perl -pi -e "s/nagios\@localhost/root\@${sms_name}/" /etc/nagios/objects/contacts.cfg
      echo command[check_ssh]=/usr/lib64/nagios/plugins/check_ssh localhost $CHROOT/etc/nagios/nrpe.cfg
      htpasswd -bc /etc/nagios/passwd nagiosadmin ${nagios_web_password}
-     chkconfig nagios on
      systemctl enable nagios
      systemctl start nagios
      chmod u+s `which ping`

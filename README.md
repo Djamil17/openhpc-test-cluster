@@ -109,9 +109,13 @@ well.
 Now run `post-provision.sh` to configure a few things and finally run:
 
    ```
-   vagrant ssh 
-   
+   vagrant ssh ${sms}
+    
+   sudo bash /vagrant/post-provision.sh
+    
    bash /test.sh
+
+   exit 
    ```
    
 To tear down the whole system simply use: 
