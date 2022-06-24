@@ -75,6 +75,10 @@ You may get an error that yum repo does not contain the kernel-headers and kerne
     sudo  yum -y install gcc
 
     exit
+ 
+Alternatively just update the kernel and restart: 
+    
+    vagrant ssh -c 'sudo yum -y update kernel' ; vagrant reload ; vagrant provision 
     
 On host machine:
     
