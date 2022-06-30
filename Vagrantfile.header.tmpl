@@ -11,8 +11,9 @@ Vagrant.configure("2") do |config|
       sms.vm.network "private_network",
                      ip: "192.168.7.2",
                      virtualbox__intnet: "provisioning"
-      sms.vm.network "forwarded_port", guest: 80, host: 57783
-      sms.vm.network "forwarded_port", guest: 90, host: 57784
+      sms.vm.network "forwarded_port", guest: 80, host: 57783 # nagios port
+      sms.vm.network "forwarded_port", guest: 9090, host: 57784 # promtetheus port
+      sms.vm.network "forwarded_port", guest: 3000, host: 57785 # grafana port TODO: need to automate selection of host ports for the three services above
       sms.vm.provision "shell", inline: "echo sms.localdomain > /etc/hostname"
       sms.vm.provision "shell", inline: "echo 192.168.7.2 sms sms.localdomain >> /etc/hosts"
       sms.vm.provision "shell", inline: "yum -y install http://repos.openhpc.community/OpenHPC/2/EL_8/x86_64/ohpc-release-2-1.el8.x86_64.rpm"

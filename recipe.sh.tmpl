@@ -327,7 +327,8 @@ fi
 
 
 if [[ ${enable_prometheus} -eq 1 ]];then
-     # Install Nagios on master and vnfs image
+     # Install prometheus on master node .
+     # NOTICE: YOU MUST CONFIGURE IT ON REMOTE MACHINES !!!!!
      useradd -M -r -s /bin/false prometheus
      mkdir /etc/prometheus
      mkdir /var/lib/prometheus
@@ -342,29 +343,43 @@ if [[ ${enable_prometheus} -eq 1 ]];then
      chown -R prometheus:prometheus /var/lib/prometheus
      chown prometheus.prometheus /usr/local/bin/{prometheus,promtool}
 
-#     cat > /etc/systemd/system/prometheus.service << 'EOL'
-#      [Unit]
-#      Description=Prometheus Time Series Collection and Processing Server
-#      Wants=network-online.target
-#      After=network-online.target
-#
-#      [Service]
-#      User=prometheus
-#      Group=prometheus
-#      Type=simple
-#      ExecStart=/usr/local/bin/prometheus \
-#          --config.file /etc/prometheus/prometheus.yml \
-#          --storage.tsdb.path /var/lib/prometheus/ \
-#          --web.console.templates=/etc/prometheus/consoles \
-#          --web.console.libraries=/etc/prometheus/console_libraries
-#
-#      [Install]
-#      WantedBy=multi-user.target
-#      EOL
+cat << EOF >/etc/systemd/system/prometheus.service
+      [Unit]
+      Description=Prometheus Time Series Collection and Processing Server
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      User=prometheus
+      Group=prometheus
+      Type=simple
+      ExecStart=/usr/local/bin/prometheus \
+          --config.file /etc/prometheus/prometheus.yml \
+          --storage.tsdb.path /var/lib/prometheus/ \
+          --web.console.templates=/etc/prometheus/consoles \
+          --web.console.libraries=/etc/prometheus/console_libraries
+
+      [Install]
+      WantedBy=multi-user.target
+EOF
 
       systemctl daemon-reload
       systemctl enable --now prometheus
       systemctl status prometheus
+
+fi
+
+if [[ ${enable_grafana} -eq 1 ]];then
+
+     VER=9.0.2-1
+     wget https://dl.grafana.com/enterprise/release/grafana-enterprise-$VER.x86_64.rpm
+     sudo yum install grafana-enterprise-$VER.x86_64.rpm
+     chown -R grafana /var/lib/grafana/
+     chmod -R 700 /var/lib/grafana/
+     sed 'i/;http_port = 3000/http_port = 3000' /etc/grafana/grafana.ini
+     sed 'i/;admin_password = admin/admin_password ${grafana_web_password}' /etc/grafana/grafana.ini
+     systemctl daemon-reload
+     systemctl start grafana-server
 
 fi
 
