@@ -93,6 +93,8 @@ Alternatively just update the kernel and restart:
     
     exit
     
+    exit
+    
     vagrant up ${sms}
     
     vagrant ssh ${sms}
