@@ -94,13 +94,11 @@ Alternatively just update the kernel and restart:
     exit
     
     exit
-    
-    vagrant up ${sms}
-    
+        
     vagrant ssh ${sms}
     
     sudo yum -y install perl make gcc elfutils-libelf-devel kernel-devel kernel-headers
-    
+        
     exit
     
     vagrant halt ${sms} 
