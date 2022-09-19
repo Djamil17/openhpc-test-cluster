@@ -87,14 +87,10 @@ Alternatively just update the kernel and restart:
        
     vagrant ssh 
     
-    sudo su 
-    
-    yum update -y kernel 
+    sudo yum update -y kernel 
     
     exit
-    
-    exit
-        
+            
     vagrant ssh ${sms}
     
     sudo yum -y install perl make gcc elfutils-libelf-devel kernel-devel kernel-headers
